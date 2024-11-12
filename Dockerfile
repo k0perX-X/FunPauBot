@@ -10,4 +10,4 @@ WORKDIR /app
 
 ENV PATH=/root/.local/bin:$PATH
 
-CMD ["python", "bot.py"]
+CMD ["python", "main.py"]
