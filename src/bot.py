@@ -91,6 +91,7 @@ def bot(bot_secrets, bot_number):
             acc.save_lot(lot)
 
     for events in runner.listen(requests_delay=delay):
+        logger.info("Cycle starts")
         accounts_df = get_accounts_df()
 
         new_orders_handler(events, accounts_df)
