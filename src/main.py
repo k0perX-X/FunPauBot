@@ -11,7 +11,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(level
 
 secrets_path = "bot_secrets"
 
-files = [f for f in listdir(secrets_path) if isfile(join(secrets_path, f)) and f != 'sample.py']
+files = [f for f in listdir(secrets_path) if isfile(join(secrets_path, f)) and f != 'sample.py' and f[-3:] == '.py']
 threads = []
 
 for file in files:

@@ -10,7 +10,7 @@ def bot(bot_secrets, bot_number):
     import logging
     logger = logging.getLogger(bot_secrets.__name__)
 
-    conf._default_dir = "./google_secret"
+    conf._default_dir = "./bot_secrets"
     lot_type_finder = re.compile(", Аренда|, Продажа")
     delay = 5
     accounts_amount_in_lot = 20
