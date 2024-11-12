@@ -24,6 +24,9 @@ for file in files:
     ))
     threads[-1].start()
 
+if not threads:
+    raise Exception("No secrets")
+
 while True:
     for thread in threads:
         if not thread.is_alive():
