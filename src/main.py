@@ -28,7 +28,8 @@ if not threads:
     raise Exception("No secrets")
 
 while True:
-    for thread in threads:
-        if not thread.is_alive():
-            thread.start()
+    for i in range(len(threads)):
+        if not threads[i].is_alive():
+            threads[i] = threads[i].clone()
+            threads[i].start()
     sleep(1)
