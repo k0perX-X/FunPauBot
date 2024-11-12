@@ -12,7 +12,7 @@ def bot(bot_secrets, bot_number):
 
     conf._default_dir = "./bot_secrets"
     lot_type_finder = re.compile(", Аренда|, Продажа")
-    delay = 5
+    delay = 60
     accounts_amount_in_lot = 20
 
     acc = FunPayAPI.Account(bot_secrets.golden_key).get()
