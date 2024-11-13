@@ -1,5 +1,6 @@
-*venv
+*venv*
 src/google_secret/*
 !src/bot_secrets/sample.py
 src/bot_secrets/*
 *.ipynb
+.idea/*
