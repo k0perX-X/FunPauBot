@@ -31,10 +31,17 @@ def bot(bot_secrets, bot_number):
                 else:
                     pass
 
+        def get_index(url):
+            parsed_url = parse_qs(urlparse(url).query)
+            if 'offer' in parsed_url:
+                return int(parsed_url['offer'][0])
+            else:
+                return None
+
         df = spread.sheet_to_df(sheet=bot_secrets.accounts_sheet_name, index=0)[
             bot_secrets.columns_names.keys()].rename(
             columns=bot_secrets.columns_names)
-        df.index = df["url"].apply(lambda x: int(parse_qs(urlparse(x).query)['offer'][0])).rename("id")
+        df.index = df["url"].apply(get_index).rename("id")
         whitespace_remover(df)
         logger.debug("get_accounts_df")
         return df
