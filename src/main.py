@@ -8,30 +8,36 @@ from threading import Thread
 import logging
 import warnings
 import gc
-
+from pathlib import Path
+import socket
 
 class RestartableThread(Thread):
-    def __init__(self, target, args, daemon):
-        self.target, self.args, self.daemon = target, args, daemon
-        super().__init__(
-            target=self.target,
-            args=self.args,
-            daemon=self.daemon
-        )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.__args = args
+        self.__kwargs = kwargs
 
     def clone(self):
-        return RestartableThread(
-            target=self.target,
-            args=self.args,
-            daemon=self.daemon
-        )
+        return RestartableThread(*self.__args, **self.__kwargs)
 
 
-warnings.simplefilter(action='ignore', category=FutureWarning)
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+def init_log():
+    logs_dirname = Path('./logs/logs')
+    log_filename = logs_dirname.joinpath(f'{socket.gethostname()}.log')
+    logs_dirname.mkdir(parents=True, exist_ok=True)
+    log_filename.touch(exist_ok=True)
+    warnings.simplefilter(action='ignore', category=FutureWarning)
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        handlers=[logging.FileHandler(str(log_filename)), logging.StreamHandler()]
+    )
+
+
+init_log()
 
 secrets_path = "bot_secrets"
-
 files = [f for f in listdir(secrets_path) if isfile(join(secrets_path, f)) and f != 'sample.py' and f[-3:] == '.py']
 threads: List[RestartableThread] = []
 
@@ -47,6 +53,11 @@ for file in files:
 
 if not threads:
     raise Exception("No secrets")
+
+del init_log
+del secrets_path
+del files
+gc.collect()
 
 while True:
     for i in range(len(threads)):

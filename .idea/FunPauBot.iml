@@ -5,7 +5,7 @@
       <excludeFolder url="file://$MODULE_DIR$/.venv" />
       <excludeFolder url="file://$MODULE_DIR$/.venv_jupyter" />
     </content>
-    <orderEntry type="jdk" jdkName="Python 3.12 (FunPauBot jupyter)" jdkType="Python SDK" />
+    <orderEntry type="jdk" jdkName="Python 3.12 (FunPauBot)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
   </component>
 </module>
