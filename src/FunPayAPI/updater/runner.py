@@ -236,11 +236,11 @@ class Runner:
             except exceptions.RequestFailedError as e:
                 logger.error(e)
             except:
-                logger.error(f"Не удалось получить истории чатов {list(chats_data.keys())}.")
+                logger.warning(f"Не удалось получить истории чатов {list(chats_data.keys())}.")
                 logger.debug("TRACEBACK", exc_info=True)
             time.sleep(1)
         else:
-            logger.error(f"Не удалось получить истории чатов {list(chats_data.keys())}: превышено кол-во попыток.")
+            logger.warning(f"Не удалось получить истории чатов {list(chats_data.keys())}: превышено кол-во попыток.")
             return {}
 
         result = {}

@@ -1,4 +1,5 @@
 import importlib
+from logging.handlers import TimedRotatingFileHandler
 from time import sleep
 from typing import List
 from bot import bot
@@ -28,10 +29,12 @@ def init_log():
     logs_dirname.mkdir(parents=True, exist_ok=True)
     log_filename.touch(exist_ok=True)
     warnings.simplefilter(action='ignore', category=FutureWarning)
+    files_handler = TimedRotatingFileHandler(str(log_filename), when="midnight")
+    files_handler.suffix = "%Y-%m-%d"
     logging.basicConfig(
         level=logging.INFO,
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-        handlers=[logging.FileHandler(str(log_filename)), logging.StreamHandler()]
+        handlers=[files_handler, logging.StreamHandler()]
     )
 
 
@@ -43,7 +46,7 @@ threads: List[RestartableThread] = []
 
 for file in files:
     secret_module = importlib.import_module(secrets_path + "." + file[:-3])
-    print(secret_module.__name__)
+    logging.info(secret_module.__name__)
     threads.append(RestartableThread(
         target=bot,
         args=(secret_module, len(threads),),
