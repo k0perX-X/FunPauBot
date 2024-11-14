@@ -7,15 +7,24 @@ from os.path import isfile, join
 from threading import Thread
 import logging
 import warnings
+import gc
 
 
 class RestartableThread(Thread):
-    def __init__(self, *args, **kwargs):
-        self._args, self._kwargs = args, kwargs
-        super().__init__(*args, **kwargs)
+    def __init__(self, target, args, daemon):
+        self.target, self.args, self.daemon = target, args, daemon
+        super().__init__(
+            target=self.target,
+            args=self.args,
+            daemon=self.daemon
+        )
 
     def clone(self):
-        return RestartableThread(*self._args, **self._kwargs)
+        return RestartableThread(
+            target=self.target,
+            args=self.args,
+            daemon=self.daemon
+        )
 
 
 warnings.simplefilter(action='ignore', category=FutureWarning)
@@ -44,4 +53,5 @@ while True:
         if not threads[i].is_alive():
             threads[i] = threads[i].clone()
             threads[i].start()
+            gc.collect()
     sleep(1)

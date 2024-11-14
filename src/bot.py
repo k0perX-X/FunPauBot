@@ -74,8 +74,8 @@ def bot(bot_secrets, bot_number):
                 lot = acc.get_lot_fields(account.name)
                 lot.active = False
                 accounts_df.loc[account.name, 'rent_start'] = order_shortcut.date.strftime('%Y/%m/%d %H:%M')
-                accounts_df.loc[account.name, 'rent_finish'] = order_shortcut.date + datetime.timedelta(
-                    hours=order_shortcut.amount).strftime('%Y/%m/%d %H:%M')
+                accounts_df.loc[account.name, 'rent_finish'] = (order_shortcut.date + datetime.timedelta(
+                    hours=order_shortcut.amount)).strftime('%Y/%m/%d %H:%M')
                 acc.save_lot(lot)
                 logger.info(f"{lot.title_ru} is deactivated")
 
