@@ -9,6 +9,7 @@ def bot(bot_secrets, bot_number):
     from urllib.parse import urlparse, parse_qs
     import logging
     import gc
+    from time import sleep
     logger = logging.getLogger(bot_secrets.__name__)
 
     try:
@@ -69,7 +70,7 @@ def bot(bot_secrets, bot_number):
                             order = acc.get_order(order_shortcut.id)
                             lots = accounts_df_with_names.loc[accounts_df_with_names['name'] == order.title]
                             if len(lots) != 1:
-                                logger.error(f'Найдено {len(lots)} аккаунтов {order.title}')
+                                logger.error(f'Found {len(lots)} accounts {order.title}')
                                 if len(lots) == 0:
                                     continue
                             account = lots.iloc[0]
@@ -78,16 +79,24 @@ def bot(bot_secrets, bot_number):
                             accounts_df.loc[account.name, 'rent_start'] = order_shortcut.date.strftime('%Y/%m/%d %H:%M')
                             accounts_df.loc[account.name, 'rent_finish'] = (order_shortcut.date + datetime.timedelta(
                                 hours=order_shortcut.amount)).strftime('%Y/%m/%d %H:%M')
-                            acc.save_lot(lot)
+                            acc_saved = False
+                            while not acc_saved:
+                                try:
+                                    acc.save_lot(lot)
+                                    acc_saved = True
+                                except Exception as e:
+                                    logger.warning(f'Error saving lot {lot.title_ru} when purchasing. {e}')
+                                    sleep(2)
                             logger.info(f"{lot.title_ru} is deactivated")
                         except Exception as e:
                             logger.error(e, exc_info=True)
                 except Exception as e:
                     logger.error(e, exc_info=True)
 
-        def update_lots_handler(accounts_df: pd.DataFrame):
-            for name, account in accounts_df.loc[(accounts_df['rent_start'] == '') & (
-                    accounts_df['funpay_account'] == bot_secrets.funpay_account)].iterrows():
+        def update_lots_handler(accounts_df: pd.DataFrame, original_df: pd.DataFrame):
+            for name, account in accounts_df.loc[(accounts_df['rent_start'] == '') &
+                                                 (accounts_df['funpay_account'] == bot_secrets.funpay_account) &
+                                                 (accounts_df[(accounts_df != original_df).any(axis=1)])].iterrows():
                 try:
                     lot = acc.get_lot_fields(name)
                     lot.active = True
@@ -99,22 +108,34 @@ def bot(bot_secrets, bot_number):
                     lot.amount = accounts_amount_in_lot
                     lot.price = account['price']
                     lot.renew_fields()
-                    acc.save_lot(lot)
+                    acc_saved = 5
+                    while acc_saved > 0:
+                        try:
+                            acc.save_lot(lot)
+                            acc_saved = 0
+                        except Exception as e:
+                            logger.warning(f'Error saving lot {lot.title_ru} when updating. {e}')
+                            acc_saved -= 1
+                            sleep(2)
+                    logger.info(f"{lot.title_ru} is updated")
                 except Exception as e:
                     logger.error(e, exc_info=True)
 
+
         def main():
+            accounts_df_original = get_accounts_df()
             for events in runner.listen(requests_delay=delay):
                 logger.info("Cycle starts")
                 accounts_df = get_accounts_df()
+
+                update_lots_handler(accounts_df, accounts_df_original)
+
                 accounts_df_original = accounts_df.copy()
 
                 new_orders_handler(events, accounts_df)
-                update_lots_handler(accounts_df)
 
                 save_accounts_df(accounts_df, accounts_df_original)
                 del accounts_df
-                del accounts_df_original
                 gc.collect()
 
         main()
