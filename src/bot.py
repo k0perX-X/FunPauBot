@@ -112,12 +112,13 @@ def bot(bot_secrets, bot_number):
                     while acc_saved > 0:
                         try:
                             acc.save_lot(lot)
-                            acc_saved = 0
+                            acc_saved = -1
                         except Exception as e:
                             logger.warning(f'Error saving lot {lot.title_ru} when updating. {e}')
                             acc_saved -= 1
                             sleep(2)
-                    logger.info(f"{lot.title_ru} is updated")
+                    if acc_saved == -1:
+                        logger.info(f"{lot.title_ru} is updated")
                 except Exception as e:
                     logger.error(e, exc_info=True)
 
