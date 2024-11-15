@@ -96,7 +96,7 @@ def bot(bot_secrets, bot_number):
         def update_lots_handler(accounts_df: pd.DataFrame, original_df: pd.DataFrame):
             for name, account in accounts_df.loc[(accounts_df['rent_start'] == '') &
                                                  (accounts_df['funpay_account'] == bot_secrets.funpay_account) &
-                                                 (accounts_df[(accounts_df != original_df).any(axis=1)])].iterrows():
+                                                 ((accounts_df != original_df).any(axis=1))].iterrows():
                 try:
                     lot = acc.get_lot_fields(name)
                     lot.active = True
