@@ -51,7 +51,7 @@ def bot(bot_secrets, bot_number):
             df[df == df_original] = None
             df = df.rename(columns={v: k for k, v in bot_secrets.columns_names.items()})
             spread.df_to_sheet(df, sheet=bot_secrets.accounts_sheet_name, start="A1", index=False)
-            logger.info("Sheet saved")
+            logger.debug("Sheet saved")
 
         def get_active_lots_df() -> pd.DataFrame:
             lots = [{'id': lot.id, 'name': lot.title[:lot_type_finder.search(lot.title).start()], 'title': lot.title}
@@ -125,7 +125,7 @@ def bot(bot_secrets, bot_number):
         def main():
             accounts_df_original = get_accounts_df()
             for events in runner.listen(requests_delay=delay):
-                logger.info("Cycle starts")
+                logger.debug("Cycle starts")
                 accounts_df = get_accounts_df()
 
                 update_lots_handler(accounts_df, accounts_df_original)
