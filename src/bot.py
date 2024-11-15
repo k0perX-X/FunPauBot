@@ -42,7 +42,7 @@ def bot(bot_secrets, bot_number):
             df = spread.sheet_to_df(sheet=bot_secrets.accounts_sheet_name, index=0)[
                 bot_secrets.columns_names.keys()].rename(
                 columns=bot_secrets.columns_names)
-            df.index = df["url"].apply(get_index).rename("id")
+            df.index = df["url"].apply(get_index).astype(float).rename("id")
             whitespace_remover(df)
             logger.debug("get_accounts_df")
             return df
