@@ -19,12 +19,14 @@ def bot(bot_secrets, bot_number):
         accounts_amount_in_lot = 20
 
         acc = FunPayAPI.Account(bot_secrets.golden_key).get()
-        logger.info("FunPayAPI.Account loaded")
+        logger.info(f"FunPayAPI.Account {acc.username} loaded")
         runner = FunPayAPI.Runner(acc)
         spread = Spread(bot_secrets.sheet_url)
         logger.info("Spread loaded")
 
         def get_accounts_df() -> pd.DataFrame:
+            nonlocal spread
+
             def whitespace_remover(dataframe):
                 for i in dataframe.columns:
                     if dataframe[i].dtype == 'object':
@@ -39,9 +41,16 @@ def bot(bot_secrets, bot_number):
                 else:
                     return None
 
-            df = spread.sheet_to_df(sheet=bot_secrets.accounts_sheet_name, index=0)[
-                bot_secrets.columns_names.keys()].rename(
-                columns=bot_secrets.columns_names)
+            df_got = False
+            df = None
+            while not df_got:
+                try:
+                    df = spread.sheet_to_df(sheet=bot_secrets.accounts_sheet_name, index=0)
+                    df_got = True
+                except Exception as e:
+                    logger.warning('Error getting DataFrame', exc_info=e)
+                    spread = Spread(bot_secrets.sheet_url)
+            df = df[bot_secrets.columns_names.keys()].rename(columns=bot_secrets.columns_names)
             df.index = df["url"].apply(get_index).astype(float).rename("id")
             whitespace_remover(df)
             logger.debug("get_accounts_df")
@@ -122,10 +131,9 @@ def bot(bot_secrets, bot_number):
                 except Exception as e:
                     logger.error(e, exc_info=True)
 
-
         def main():
             accounts_df_original = get_accounts_df()
-            for events in runner.listen(requests_delay=delay):
+            for events in runner.listen(requests_delay=delay, disable_chat=True):
                 logger.debug("Cycle starts")
                 accounts_df = get_accounts_df()
 

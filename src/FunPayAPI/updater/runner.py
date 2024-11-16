@@ -78,27 +78,29 @@ class Runner:
 
         self.__msg_time_re = re.compile(r"\d{2}:\d{2}")
 
-    def get_updates(self) -> dict:
+    def get_updates(self, disable_chat=False) -> dict:
         """
         Запрашивает список событий FunPay.
 
         :return: ответ FunPay.
         :rtype: :obj:`dict`
         """
-        orders = {
+        objects = []
+        objects.append({
             "type": "orders_counters",
             "id": self.account.id,
             "tag": self.__last_order_event_tag,
             "data": False
-        }
-        chats = {
-            "type": "chat_bookmarks",
-            "id": self.account.id,
-            "tag": self.__last_msg_event_tag,
-            "data": False
-        }
+        })
+        if not disable_chat:
+            objects.append({
+                "type": "chat_bookmarks",
+                "id": self.account.id,
+                "tag": self.__last_msg_event_tag,
+                "data": False
+            })
         payload = {
-            "objects": json.dumps([orders, chats]),
+            "objects": json.dumps(objects),
             "request": False,
             "csrf_token": self.account.csrf_token
         }
@@ -386,13 +388,15 @@ class Runner:
             self.by_bot_ids[chat_id].append(message_id)
 
     def listen(self, requests_delay: int | float = 6.0,
-               ignore_exceptions: bool = True) -> Generator[InitialChatEvent | ChatsListChangedEvent |
+               ignore_exceptions: bool = True,
+               disable_chat = False) -> Generator[InitialChatEvent | ChatsListChangedEvent |
                                                             LastChatMessageChangedEvent | NewMessageEvent |
                                                             InitialOrderEvent | OrdersListChangedEvent | NewOrderEvent |
                                                             OrderStatusChangedEvent]:
         """
         Бесконечно отправляет запросы для получения новых событий.
 
+        :param disable_chat: Отключает проверку чатов
         :param requests_delay: задержка между запросами (в секундах).
         :type requests_delay: :obj:`int` or :obj:`float`, опционально
 
@@ -410,7 +414,7 @@ class Runner:
         """
         while True:
             try:
-                updates = self.get_updates()
+                updates = self.get_updates(disable_chat)
                 events = self.parse_updates(updates)
                 yield events
             except Exception as e:
