@@ -9,5 +9,6 @@ COPY src /app
 WORKDIR /app
 
 ENV PATH=/root/.local/bin:$PATH
+ENV TZ=Europe/Moscow
 
 CMD ["python", "main.py"]
