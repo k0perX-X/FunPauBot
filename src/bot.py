@@ -139,7 +139,7 @@ def bot(bot_secrets, bot_number):
                 for trigger, message in bot_secrets.auto_reply.items():
                     if trigger in event.message.text.lower() and event.message.author_id != acc.id:
                         sent_message = acc.send_message(event.message.chat_id, message)
-                        logger.info(f'Send {sent_message.text} to {event.message.chat_id}')
+                        logger.info(f'Send {trigger} to {event.message.chat_id}')
 
         def main():
             accounts_df_original = get_accounts_df()
