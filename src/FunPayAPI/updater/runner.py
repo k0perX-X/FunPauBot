@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import re
-from typing import TYPE_CHECKING, Generator
+from typing import TYPE_CHECKING, Generator, List
+
 if TYPE_CHECKING:
     from ..account import Account
 
@@ -11,7 +12,6 @@ from bs4 import BeautifulSoup
 
 from ..common import exceptions
 from .events import *
-
 
 logger = logging.getLogger("FunPayAPI.runner")
 
@@ -40,6 +40,7 @@ class Runner:
         :class:`FunPayAPI.updater.events.OrdersListChangedEvent`.
     :type disabled_order_requests: :obj:`bool`, опционально
     """
+
     def __init__(self, account: Account, disable_message_requests: bool = False,
                  disabled_order_requests: bool = False):
         # todo добавить события и исключение событий о новых покупках (не продажах!)
@@ -181,7 +182,8 @@ class Runner:
                 # Если есть сохраненное время сообщения для данного чата
                 if self.last_messages[chat_id][1]:
                     # Если время ласт сообщения не имеет формат ЧЧ:ММ или совпадает с сохраненным - скип чата
-                    if not self.__msg_time_re.fullmatch(last_msg_time) or self.last_messages[chat_id][1] == last_msg_time:
+                    if (not self.__msg_time_re.fullmatch(last_msg_time) or
+                            self.last_messages[chat_id][1] == last_msg_time):
                         continue
                 # Если нет сохраненного времени сообщения для данного чата - скип чата
                 else:
@@ -238,11 +240,14 @@ class Runner:
             except exceptions.RequestFailedError as e:
                 logger.error(e)
             except:
-                logger.warning(f"Не удалось получить истории чатов {list(chats_data.keys())}.")
+                logger.warning(
+                    f"Не удалось получить истории чатов {list(chats_data.keys())} аккаунта {self.account.username}.")
                 logger.debug("TRACEBACK", exc_info=True)
             time.sleep(1)
         else:
-            logger.warning(f"Не удалось получить истории чатов {list(chats_data.keys())}: превышено кол-во попыток.")
+            logger.warning(
+                f"Не удалось получить истории чатов {list(chats_data.keys())} аккаунта {self.account.username}: "
+                "превышено кол-во попыток.")
             return {}
 
         result = {}
@@ -389,10 +394,7 @@ class Runner:
 
     def listen(self, requests_delay: int | float = 6.0,
                ignore_exceptions: bool = True,
-               disable_chat = False) -> Generator[InitialChatEvent | ChatsListChangedEvent |
-                                                            LastChatMessageChangedEvent | NewMessageEvent |
-                                                            InitialOrderEvent | OrdersListChangedEvent | NewOrderEvent |
-                                                            OrderStatusChangedEvent]:
+               disable_chat=False) -> Generator[List[BaseEvent]]:
         """
         Бесконечно отправляет запросы для получения новых событий.
 
@@ -421,7 +423,7 @@ class Runner:
                 if not ignore_exceptions:
                     raise e
                 else:
-                    logger.error("Произошла ошибка при получении событий. "
+                    logger.error(f"Произошла ошибка {e} при получении событий аккаунта {self.account.username} "
                                  "(ничего страшного, если это сообщение появляется нечасто).")
                     logger.debug("TRACEBACK", exc_info=True)
             time.sleep(requests_delay)

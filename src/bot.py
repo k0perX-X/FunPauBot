@@ -11,6 +11,7 @@ def bot(bot_secrets, bot_number):
     import gc
     from time import sleep
     logger = logging.getLogger(bot_secrets.__name__)
+    bot_secrets.auto_reply = {k.lower(): v for k, v in bot_secrets.auto_reply.items()}
 
     try:
         conf._default_dir = "./bot_secrets"
@@ -131,9 +132,18 @@ def bot(bot_secrets, bot_number):
                 except Exception as e:
                     logger.error(e, exc_info=True)
 
+        def new_messages_handler(events: List[FunPayAPI.events.BaseEvent]):
+            new_message_events: List[FunPayAPI.common.enums.EventTypes.NEW_MESSAGE] = \
+                [event for event in events if event.type == FunPayAPI.common.enums.EventTypes.NEW_MESSAGE]
+            for event in new_message_events:
+                for trigger, message in bot_secrets.auto_reply.items():
+                    if trigger in event.message.text.lower() and event.message.author_id != acc.id:
+                        sent_message = acc.send_message(event.message.chat_id, message)
+                        logger.info(f'Send {sent_message.text} to {event.message.chat_id}')
+
         def main():
             accounts_df_original = get_accounts_df()
-            for events in runner.listen(requests_delay=delay, disable_chat=True):
+            for events in runner.listen(requests_delay=delay):
                 logger.debug("Cycle starts")
                 accounts_df = get_accounts_df()
 
@@ -142,6 +152,8 @@ def bot(bot_secrets, bot_number):
                 accounts_df_original = accounts_df.copy()
 
                 new_orders_handler(events, accounts_df)
+
+                new_messages_handler(events)
 
                 save_accounts_df(accounts_df, accounts_df_original)
                 del accounts_df
