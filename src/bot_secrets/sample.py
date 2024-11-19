@@ -14,3 +14,5 @@ columns_names = {
 }
 funpay_account = ''
 sheet_url = ''
+auto_reply = {
+}
