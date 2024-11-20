@@ -15,8 +15,9 @@ def bot(bot_secrets, bot_number):
 
     try:
         conf._default_dir = "./bot_secrets"
+        path_to_images = './images/images'
         lot_type_finder = re.compile(", Аренда|, Продажа")
-        delay = 5
+        delay = 0
         accounts_amount_in_lot = 20
 
         acc = FunPayAPI.Account(bot_secrets.golden_key).get()
@@ -137,10 +138,23 @@ def bot(bot_secrets, bot_number):
                 [event for event in events if event.type == FunPayAPI.common.enums.EventTypes.NEW_MESSAGE]
             for event in new_message_events:
                 for trigger, message in bot_secrets.auto_reply.items():
-                    if trigger in event.message.text.lower() and event.message.author_id != acc.id:
-                        sent_message = acc.send_message(event.message.chat_id, message)
-                        logger.info(f'Send {trigger} to {event.message.chat_id}')
-                        break
+                    if type(event.message.text) == str:
+                        if trigger in event.message.text.lower() and event.message.author_id != acc.id:
+                            if type(message) == str:
+                                acc.send_message(event.message.chat_id, message)
+                                logger.info(f'Send {trigger} to {event.message.chat_id}')
+                                break
+                            elif type(message) == list or type(message) == tuple:
+                                for mes in message:
+                                    try:
+                                        if mes[0] != '/':
+                                            acc.send_message(event.message.chat_id, mes)
+                                        else:
+                                            acc.send_image(event.message.chat_id, path_to_images + mes)
+                                    except Exception as e:
+                                        logger.error(f'Error on send {trigger} to {event.message.chat_id}', exc_info=True)
+                                logger.info(f'Send {trigger} to {event.message.chat_id}')
+                                break
 
         def main():
             accounts_df_original = get_accounts_df()
