@@ -453,7 +453,7 @@ class Account:
         try:
             if image_link := parser.find("a", {"class": "chat-img-link"}):
                 image_link = image_link.get("href")
-                message_text = None
+                message_text = 'Изображение'
             else:
                 message_text = parser.find("div", {"class": "chat-msg-text"}).text.replace(self.__bot_character, "", 1)
         except Exception as e:
