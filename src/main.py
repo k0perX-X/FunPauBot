@@ -2,7 +2,8 @@ import importlib
 from logging.handlers import TimedRotatingFileHandler
 from time import sleep
 from typing import List
-from bot import bot
+from bot_sheet import bot_sheet
+from bot_messages import bot_messages
 from os import listdir, environ
 from os.path import isfile, join
 from threading import Thread
@@ -48,7 +49,14 @@ for file in files:
     secret_module = importlib.import_module(secrets_path + "." + file[:-3])
     logging.info(secret_module.__name__)
     threads.append(RestartableThread(
-        target=bot,
+        target=bot_sheet,
+        args=(secret_module, len(threads),),
+        daemon=True
+    ))
+    threads[-1].start()
+
+    threads.append(RestartableThread(
+        target=bot_messages,
         args=(secret_module, len(threads),),
         daemon=True
     ))

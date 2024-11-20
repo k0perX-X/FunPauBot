@@ -424,6 +424,6 @@ class Runner:
                     raise e
                 else:
                     logger.error(f"Произошла ошибка {e} при получении событий аккаунта {self.account.username} "
-                                 "(ничего страшного, если это сообщение появляется нечасто).")
-                    logger.debug("TRACEBACK", exc_info=True)
+                                 "(ничего страшного, если это сообщение появляется нечасто).", exc_info=e)
+                    # logger.debug("TRACEBACK", exc_info=True)
             time.sleep(requests_delay)

@@ -1,4 +1,4 @@
-def bot(bot_secrets, bot_number):
+def bot_sheet(bot_secrets, bot_number):
     from typing import List
     import datetime
     import re
@@ -10,17 +10,21 @@ def bot(bot_secrets, bot_number):
     import logging
     import gc
     from time import sleep
-    logger = logging.getLogger(bot_secrets.__name__)
+    logger = logging.getLogger(bot_secrets.__name__ + "_sheet")
     bot_secrets.auto_reply = {k.lower(): v for k, v in bot_secrets.auto_reply.items()}
 
     try:
         conf._default_dir = "./bot_secrets"
-        path_to_images = './images/images'
         lot_type_finder = re.compile(", Аренда|, Продажа")
         delay = 0
         accounts_amount_in_lot = 20
 
-        acc = FunPayAPI.Account(bot_secrets.golden_key).get()
+        try:
+            acc = FunPayAPI.Account(bot_secrets.golden_key).get()
+        except FunPayAPI.common.exceptions.UnauthorizedError as e:
+            logger.critical("Похоже golden_key просочен. Бот работать не может! Обнови golden_key и перезапусти бота")
+            sleep(60 * 5)
+            exit(1)
         logger.info(f"FunPayAPI.Account {acc.username} loaded")
         runner = FunPayAPI.Runner(acc)
         spread = Spread(bot_secrets.sheet_url)
@@ -133,32 +137,9 @@ def bot(bot_secrets, bot_number):
                 except Exception as e:
                     logger.error(e, exc_info=True)
 
-        def new_messages_handler(events: List[FunPayAPI.events.BaseEvent]):
-            new_message_events: List[FunPayAPI.common.enums.EventTypes.NEW_MESSAGE] = \
-                [event for event in events if event.type == FunPayAPI.common.enums.EventTypes.NEW_MESSAGE]
-            for event in new_message_events:
-                for trigger, message in bot_secrets.auto_reply.items():
-                    if type(event.message.text) == str:
-                        if trigger in event.message.text.lower() and event.message.author_id != acc.id:
-                            if type(message) == str:
-                                acc.send_message(event.message.chat_id, message)
-                                logger.info(f'Send {trigger} to {event.message.chat_id}')
-                                break
-                            elif type(message) == list or type(message) == tuple:
-                                for mes in message:
-                                    try:
-                                        if mes[0] != '/':
-                                            acc.send_message(event.message.chat_id, mes)
-                                        else:
-                                            acc.send_image(event.message.chat_id, path_to_images + mes)
-                                    except Exception as e:
-                                        logger.error(f'Error on send {trigger} to {event.message.chat_id}', exc_info=True)
-                                logger.info(f'Send {trigger} to {event.message.chat_id}')
-                                break
-
         def main():
             accounts_df_original = get_accounts_df()
-            for events in runner.listen(requests_delay=delay):
+            for events in runner.listen(requests_delay=delay, disable_chat=True):
                 logger.debug("Cycle starts")
                 accounts_df = get_accounts_df()
 
@@ -167,8 +148,6 @@ def bot(bot_secrets, bot_number):
                 accounts_df_original = accounts_df.copy()
 
                 new_orders_handler(events, accounts_df)
-
-                new_messages_handler(events)
 
                 save_accounts_df(accounts_df, accounts_df_original)
                 del accounts_df
@@ -184,4 +163,4 @@ def bot(bot_secrets, bot_number):
 if __name__ == '__main__':
     import importlib
 
-    bot(importlib.import_module("bot_secrets.A0EDAVA1KA"), 0)
+    bot_sheet(importlib.import_module("bot_secrets.A0EDAVA1KA"), 0)

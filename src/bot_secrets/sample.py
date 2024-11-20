@@ -15,4 +15,5 @@ columns_names = {
 funpay_account = ''
 sheet_url = ''
 auto_reply = {
+    '!аккаунт': [ '123', '/image.png', '123' ]
 }
