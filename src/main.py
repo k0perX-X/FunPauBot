@@ -3,7 +3,7 @@ from logging.handlers import TimedRotatingFileHandler
 from time import sleep
 from typing import List
 from bot import bot
-from os import listdir
+from os import listdir, environ
 from os.path import isfile, join
 from threading import Thread
 import logging
@@ -32,7 +32,7 @@ def init_log():
     files_handler = TimedRotatingFileHandler(str(log_filename), when="midnight")
     files_handler.suffix = "%Y-%m-%d"
     logging.basicConfig(
-        level=logging.INFO,
+        level=logging.INFO if not environ.get("DEBUG") else logging.DEBUG,
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
         handlers=[files_handler, logging.StreamHandler()]
     )
