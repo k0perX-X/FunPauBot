@@ -58,6 +58,8 @@ class Runner:
         self.__last_msg_event_tag = utils.random_tag()
         self.__last_order_event_tag = utils.random_tag()
 
+        self.chats = {}
+
         self.saved_orders: dict[str, types.OrderShortcut] = {}
         """Сохраненные состояния заказов ({ID заказа: экземпляр types.OrderShortcut})."""
 
@@ -252,6 +254,8 @@ class Runner:
             return {}
 
         result = {}
+
+        self.chats.update(chats)
 
         for cid, messages in chats.items():
             result[cid] = []

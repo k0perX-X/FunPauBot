@@ -17,3 +17,4 @@ sheet_url = ''
 auto_reply = {
     '!аккаунт': [ '123', '/image.png', '123' ]
 }
+welcome_message = ''

@@ -21,17 +21,36 @@ def bot_messages(bot_secrets, bot_number):
         runner = FunPayAPI.Runner(acc)
 
         def new_messages_handler(events: List[FunPayAPI.events.BaseEvent]):
-            new_message_events: List[FunPayAPI.common.enums.EventTypes.NEW_MESSAGE] = \
+            new_message_events: List[FunPayAPI.events.NewMessageEvent] = \
                 [event for event in events if event.type == FunPayAPI.common.enums.EventTypes.NEW_MESSAGE]
             for event in new_message_events:
+                messages = get_messages_from_chat(event.message)
+                if messages:
+                    if (not any([m.badge for m in messages]) and not any([m.by_bot for m in messages])
+                            and all([m.get_message_type() == FunPayAPI.enums.MessageTypes.NON_SYSTEM for m in messages])
+                            and all([m.author != acc.username for m in messages])):
+                        try:
+                            runner.chats[event.message.chat_id].append(
+                                acc.send_message(event.message.chat_id, bot_secrets.welcome_message))
+                            logger.info(f'Send welcome message to {event.message.author}')
+                        except Exception as e:
+                            logger.error(
+                                f'Error on send welcome message to {event.message.author}',
+                                exc_info=True)
+                        break
                 for trigger, message in bot_secrets.auto_reply.items():
-                    if type(event.message.text) == str:
-                        if (trigger in event.message.text.lower()
+                    if event.message.text != 'Изображение':
+                        if (trigger in event.message.text.lower() and not event.message.badge
+                                and event.message.get_message_type() == FunPayAPI.enums.MessageTypes.NON_SYSTEM
                                 and event.message.author != acc.username and not event.message.by_bot):
                             if type(message) == str:
-                                acc.send_message(event.message.chat_id, message)
-                                logger.info(f'Send {trigger} to {event.message.author} on {event.message.text}')
-                                break
+                                try:
+                                    acc.send_message(event.message.chat_id, message)
+                                    logger.info(f'Send {trigger} to {event.message.author} on {event.message.text}')
+                                except Exception as e:
+                                    logger.error(
+                                        f'Error on send {trigger} to {event.message.author} on {event.message.text}',
+                                        exc_info=True)
                             elif type(message) == list or type(message) == tuple:
                                 for mes in message:
                                     try:
@@ -45,6 +64,25 @@ def bot_messages(bot_secrets, bot_number):
                                             exc_info=True)
                                 logger.info(f'Send {trigger} to {event.message.author} on {event.message.text}')
                                 break
+
+        def get_messages_from_chat(message: FunPayAPI.types.Message) -> List[FunPayAPI.types.Message] | None:
+            if message.chat_id not in runner.chats:
+                attempts = 3
+                while attempts:
+                    attempts -= 1
+                    try:
+                        chat = runner.account.get_chats_histories({message.chat_id: message.author})
+                        break
+                    except Exception as e:
+                        logger.error(f"Произошла ошибка {e} при обновлении чата {message.chat_id} {acc.username}",
+                                     exc_info=True)
+                        # logger.debug("TRACEBACK", exc_info=True)
+                    sleep(1)
+                else:
+                    logger.error(f"Не удалось обновить чат {message.chat_id}: превышено кол-во попыток.")
+                    return None
+                runner.chats.update(chat)
+            return runner.chats[message.chat_id]
 
         def main():
             for events in runner.listen(requests_delay=delay, disable_orders=True):
