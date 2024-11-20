@@ -61,7 +61,7 @@ class Runner:
         self.saved_orders: dict[str, types.OrderShortcut] = {}
         """Сохраненные состояния заказов ({ID заказа: экземпляр types.OrderShortcut})."""
 
-        self.last_messages: dict[int, list[str, str | None]] = {}
+        self.last_messages: dict[int, list[str | None]] = {}
         """ID последний сообщений ({ID чата: (текст сообщения (до 250 символов), время сообщения)})."""
 
         self.init_messages: dict[int, str] = {}
@@ -79,7 +79,7 @@ class Runner:
 
         self.__msg_time_re = re.compile(r"\d{2}:\d{2}")
 
-    def get_updates(self, disable_chat=False) -> dict:
+    def get_updates(self, disable_chat=False, disable_orders=False) -> dict:
         """
         Запрашивает список событий FunPay.
 
@@ -87,12 +87,13 @@ class Runner:
         :rtype: :obj:`dict`
         """
         objects = []
-        objects.append({
-            "type": "orders_counters",
-            "id": self.account.id,
-            "tag": self.__last_order_event_tag,
-            "data": False
-        })
+        if not disable_orders:
+            objects.append({
+                "type": "orders_counters",
+                "id": self.account.id,
+                "tag": self.__last_order_event_tag,
+                "data": False
+            })
         if not disable_chat:
             objects.append({
                 "type": "chat_bookmarks",
@@ -241,8 +242,8 @@ class Runner:
                 logger.error(e)
             except:
                 logger.warning(
-                    f"Не удалось получить истории чатов {list(chats_data.keys())} аккаунта {self.account.username}.")
-                logger.debug("TRACEBACK", exc_info=True)
+                    f"Не удалось получить истории чатов {list(chats_data.keys())} аккаунта {self.account.username}.", exc_info=True)
+                # logger.debug("TRACEBACK", exc_info=True)
             time.sleep(1)
         else:
             logger.warning(
@@ -252,8 +253,7 @@ class Runner:
 
         result = {}
 
-        for cid in chats:
-            messages = chats[cid]
+        for cid, messages in chats.items():
             result[cid] = []
             self.by_bot_ids[cid] = self.by_bot_ids.get(cid) or []
 
@@ -279,9 +279,9 @@ class Runner:
                     del self.init_messages[cid]
                     temp = []
                     for i in reversed(messages):
+                        temp.append(i)
                         if i.text[:250] == init_msg_text:
                             break
-                        temp.append(i)
                     messages = list(reversed(temp))
 
                 # Если данного чата не было при первом запросе, в результат добавляем только ласт сообщение истории.
@@ -328,9 +328,10 @@ class Runner:
                 break
             except exceptions.RequestFailedError as e:
                 logger.error(e)
-            except:
-                logger.error("Не удалось обновить список заказов.")
-                logger.debug("TRACEBACK", exc_info=True)
+            except Exception as e:
+                logger.error(f"Произошла ошибка {e} при обновлении списка заказов {self.account.username}",
+                             exc_info=True)
+                # logger.debug("TRACEBACK", exc_info=True)
             time.sleep(1)
         else:
             logger.error("Не удалось обновить список продаж: превышено кол-во попыток.")
@@ -394,10 +395,12 @@ class Runner:
 
     def listen(self, requests_delay: int | float = 6.0,
                ignore_exceptions: bool = True,
-               disable_chat=False) -> Generator[List[BaseEvent]]:
+               disable_chat=False,
+               disable_orders=False) -> Generator[List[BaseEvent]]:
         """
         Бесконечно отправляет запросы для получения новых событий.
 
+        :param disable_orders: Отключает проверку заказов
         :param disable_chat: Отключает проверку чатов
         :param requests_delay: задержка между запросами (в секундах).
         :type requests_delay: :obj:`int` or :obj:`float`, опционально
@@ -409,14 +412,15 @@ class Runner:
         :rtype: :obj:`Generator` of :class:`FunPayAPI.updater.events.InitialChatEvent`,
             :class:`FunPayAPI.updater.events.ChatsListChangedEvent`,
             :class:`FunPayAPI.updater.events.LastChatMessageChangedEvent`,
-            :class:`FunPayAPI.updater.events.NewMessageEvent`, :class:`FunPayAPI.updater.events.InitialOrderEvent`,
+            :class:`FunPayAPI.updater.events.NewMessageEvent`,
+            :class:`FunPayAPI.updater.events.InitialOrderEvent`,
             :class:`FunPayAPI.updater.events.OrdersListChangedEvent`,
             :class:`FunPayAPI.updater.events.NewOrderEvent`,
             :class:`FunPayAPI.updater.events.OrderStatusChangedEvent`
         """
         while True:
             try:
-                updates = self.get_updates(disable_chat)
+                updates = self.get_updates(disable_chat, disable_orders)
                 events = self.parse_updates(updates)
                 yield events
             except Exception as e:
@@ -424,6 +428,7 @@ class Runner:
                     raise e
                 else:
                     logger.error(f"Произошла ошибка {e} при получении событий аккаунта {self.account.username} "
-                                 "(ничего страшного, если это сообщение появляется нечасто).", exc_info=e)
+                                 "(ничего страшного, если это сообщение появляется нечасто).",
+                                 exc_info=False if 'Read timed out' in str(e) else True)
                     # logger.debug("TRACEBACK", exc_info=True)
             time.sleep(requests_delay)

@@ -26,10 +26,11 @@ def bot_messages(bot_secrets, bot_number):
             for event in new_message_events:
                 for trigger, message in bot_secrets.auto_reply.items():
                     if type(event.message.text) == str:
-                        if trigger in event.message.text.lower() and event.message.author != acc.username:
+                        if (trigger in event.message.text.lower()
+                                and event.message.author != acc.username and not event.message.by_bot):
                             if type(message) == str:
                                 acc.send_message(event.message.chat_id, message)
-                                logger.info(f'Send {trigger} to {event.message.chat_id}')
+                                logger.info(f'Send {trigger} to {event.message.author} on {event.message.text}')
                                 break
                             elif type(message) == list or type(message) == tuple:
                                 for mes in message:
@@ -39,13 +40,14 @@ def bot_messages(bot_secrets, bot_number):
                                         else:
                                             acc.send_image(event.message.chat_id, path_to_images + mes)
                                     except Exception as e:
-                                        logger.error(f'Error on send {trigger} to {event.message.chat_id}',
-                                                     exc_info=True)
-                                logger.info(f'Send {trigger} to {event.message.chat_id}')
+                                        logger.error(
+                                            f'Error on send {trigger} to {event.message.author} on {event.message.text}',
+                                            exc_info=True)
+                                logger.info(f'Send {trigger} to {event.message.author} on {event.message.text}')
                                 break
 
         def main():
-            for events in runner.listen(requests_delay=delay):
+            for events in runner.listen(requests_delay=delay, disable_orders=True):
                 logger.debug("Cycle starts")
 
                 new_messages_handler(events)

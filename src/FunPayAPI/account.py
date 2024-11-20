@@ -1,5 +1,6 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING, Literal, Any, Optional, IO
+
 if TYPE_CHECKING:
     from .updater.runner import Runner
 
@@ -16,7 +17,6 @@ import re
 
 from . import types
 from .common import exceptions, utils, enums
-
 
 logger = logging.getLogger("FunPayAPI.account")
 PRIVATE_CHAT_ID_RE = re.compile(r"users-\d+-\d+$")
@@ -38,6 +38,7 @@ class Account:
     :param proxy: прокси для запросов.
     :type proxy: :obj:`dict` {:obj:`str`: :obj:`str` or :obj:`None`
     """
+
     def __init__(self, golden_key: str, user_agent: str | None = None,
                  requests_timeout: int | float = 10, proxy: Optional[dict] = None):
         self.golden_key: str = golden_key
@@ -723,7 +724,8 @@ class Account:
                         continue
                     subcats.append(subcat)
         else:
-            subcats = [i for i in category.get_subcategories() if i.type is types.SubCategoryTypes.COMMON and i.id not in exclude]
+            subcats = [i for i in category.get_subcategories() if
+                       i.type is types.SubCategoryTypes.COMMON and i.id not in exclude]
 
         headers = {
             "accept": "*/*",
@@ -825,7 +827,8 @@ class Account:
         response = self.method("get", f"chat/?node={chat_id}", {"accept": "*/*"}, {}, raise_not_200=True)
         html_response = response.content.decode()
         parser = BeautifulSoup(html_response, "html.parser")
-        if (name := parser.find("div", {"class": "chat-header"}).find("div", {"class": "media-user-name"}).find("a").text) == "Чат":
+        if (name := parser.find("div", {"class": "chat-header"}).find("div", {"class": "media-user-name"}).find(
+                "a").text) == "Чат":
             raise Exception("chat not found")  # todo
 
         if not (chat_panel := parser.find("div", {"class": "param-item chat-panel"})):
@@ -902,7 +905,7 @@ class Account:
 
         review_obj = parser.find("div", {"class": "order-review"})
         if not (stars_obj := review_obj.find("div", {"class": "rating"})):
-            stars, text,  = None, None
+            stars, text, = None, None
         else:
             stars = int(stars_obj.find("div").get("class")[0].split("rating")[1])
             text = review_obj.find("div", {"class": "review-item-text"}).text.strip()
@@ -1206,14 +1209,16 @@ class Account:
         try:
             json_response = response.json()
         except:
-            json_response = { "html": response.text }
+            json_response = {"html": response.text}
         bs = BeautifulSoup(json_response["html"], "html.parser")
 
         result = {"active": "", "deactivate_after_sale": ""}
         result.update({field["name"]: field.get("value") or "" for field in bs.find_all("input")
                        if field["name"] not in ["active", "deactivate_after_sale"]})
         result.update({field["name"]: field.text or "" for field in bs.find_all("textarea")})
-        result.update({field["name"]: v["value"] if (v := field.find("option", selected=True)) is not None else None for field in bs.find_all("select")})
+        result.update(
+            {field["name"]: v["value"] if (v := field.find("option", selected=True)) is not None else None for field in
+             bs.find_all("select")})
         result.update({field["name"]: "on" for field in bs.find_all("input", {"type": "checkbox"}, checked=True)})
         return types.LotFields(lot_id, result)
 
@@ -1359,8 +1364,8 @@ class Account:
         messages = []
         ids = {self.id: self.username, 0: "FunPay"}
         badges = {}
-        if interlocutor_id is not None:
-            ids[interlocutor_id] = interlocutor_username
+        # if interlocutor_id is not None:
+        #     ids[interlocutor_id] = interlocutor_username
 
         for i in json_messages:
             if i["id"] < from_id:
@@ -1369,7 +1374,8 @@ class Account:
             parser = BeautifulSoup(i["html"], "html.parser")
 
             # Если ник или бейдж написавшего неизвестен, но есть блок с данными об авторе сообщения
-            if None in [ids.get(author_id), badges.get(author_id)] and (author_div := parser.find("div", {"class": "media-user-name"})):
+            if None in [ids.get(author_id), badges.get(author_id)] and (
+                    author_div := parser.find("div", {"class": "media-user-name"})):
                 if badges.get(author_id) is None:
                     badge = author_div.find("span")
                     badges[author_id] = badge.text if badge else 0
@@ -1382,7 +1388,7 @@ class Account:
 
             if self.chat_id_private and (image_link := parser.find("a", {"class": "chat-img-link"})):
                 image_link = image_link.get("href")
-                message_text = None
+                message_text = 'Изображение'
             else:
                 image_link = None
                 if author_id == 0:
