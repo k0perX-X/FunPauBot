@@ -10,14 +10,17 @@ def bot_sheet(bot_secrets, bot_number):
     import logging
     import gc
     from time import sleep
+    from random import random
+    from threading import Thread
     logger = logging.getLogger(bot_secrets.__name__ + "_sheet")
     bot_secrets.auto_reply = {k.lower(): v for k, v in bot_secrets.auto_reply.items()}
 
     try:
         conf._default_dir = "./bot_secrets"
         lot_type_finder = re.compile(", Аренда|, Продажа")
-        delay = 0
+        delay = 120
         accounts_amount_in_lot = 20
+        sleep(delay * random())
 
         try:
             acc = FunPayAPI.Account(bot_secrets.golden_key).get()
@@ -95,13 +98,15 @@ def bot_sheet(bot_secrets, bot_number):
                             accounts_df.loc[account.name, 'rent_finish'] = (order_shortcut.date + datetime.timedelta(
                                 hours=order_shortcut.amount)).strftime('%Y/%m/%d %H:%M')
                             acc_saved = False
+                            number = 0
                             while not acc_saved:
                                 try:
                                     acc.save_lot(lot)
                                     acc_saved = True
                                 except Exception as e:
                                     logger.warning(f'Error saving lot {lot.title_ru} when purchasing. {e}')
-                                    sleep(2)
+                                    number += 1
+                                    sleep(delay * number)
                             logger.info(f"{lot.title_ru} is deactivated")
                         except Exception as e:
                             logger.error(e, exc_info=True)
@@ -138,9 +143,7 @@ def bot_sheet(bot_secrets, bot_number):
                     logger.error(e, exc_info=True)
 
         def main():
-            accounts_df_original = get_accounts_df()
-            for events in runner.listen(requests_delay=delay, disable_chat=True):
-                logger.debug("Cycle starts")
+            def cycle(accounts_df_original):
                 accounts_df = get_accounts_df()
 
                 update_lots_handler(accounts_df, accounts_df_original)
@@ -151,6 +154,11 @@ def bot_sheet(bot_secrets, bot_number):
 
                 save_accounts_df(accounts_df, accounts_df_original)
                 del accounts_df
+
+            accounts_df_original = get_accounts_df()
+            for events in runner.listen(requests_delay=delay, disable_chat=True):
+                logger.debug("Cycle starts")
+                Thread(target=cycle, args=(accounts_df_original,)).start()
                 gc.collect()
 
         main()

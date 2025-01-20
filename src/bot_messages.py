@@ -9,7 +9,7 @@ def bot_messages(bot_secrets, bot_number):
 
     try:
         path_to_images = './images/images'
-        delay = 2
+        delay = 10
 
         try:
             acc = FunPayAPI.Account(bot_secrets.golden_key).get()
